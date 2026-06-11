@@ -11,7 +11,6 @@ export default withAuth(
     const subdomain = getSubdomainFromHost(hostname);
 
     if (pathname === "/" || pathname === "/login" || pathname === "/register" || pathname.startsWith("/register/") || pathname.startsWith("/api/auth") || pathname === "/manifest.json" || pathname.startsWith("/icon")) {
-      // Subdomen bor bo'lsa — faqat /login ruxsat, landing va register ga yo'l yo'q
       if (subdomain && (pathname === "/" || pathname === "/register")) {
         const loginUrl = new URL("/login", request.url);
         return NextResponse.redirect(loginUrl);
@@ -55,6 +54,17 @@ export default withAuth(
       return NextResponse.redirect(loginUrl);
     }
 
+    if (!subdomain && token.subdomain && token.role !== "SUPER_ADMIN") {
+      const tenantUrl = new URL(pathname, request.url);
+      tenantUrl.hostname = `${token.subdomain}.${process.env.NEXT_PUBLIC_APP_DOMAIN || "buloqwater.uz"}`;
+      return NextResponse.redirect(tenantUrl);
+    }
+
+    if (!subdomain && !token.subdomain && token.role !== "SUPER_ADMIN" && token.role !== "CUSTOMER") {
+      const loginUrl = new URL("/login", request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+
     return NextResponse.next();
   },
   {
@@ -82,20 +92,15 @@ export default withAuth(
 function getSubdomainFromHost(hostname: string): string | null {
   const baseDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "buloqwater.uz";
 
-  // Vercel default domeni — subdomen emas
   if (hostname.includes(".vercel.app")) return null;
 
-  // Production: shifo.buloqwater.uz → "shifo"
   if (hostname.includes(baseDomain)) {
     const clean = hostname.replace(`:${process.env.PORT || "3000"}`, "");
-    // buloqwater.uz yoki www.buloqwater.uz — subdomen emas
     if (clean === baseDomain || clean === `www.${baseDomain}`) return null;
-    // shifo.buloqwater.uz → "shifo"
     const sub = clean.replace(`.${baseDomain}`, "");
     if (sub && sub !== clean) return sub;
   }
 
-  // Dev: shifo.localhost:3000
   if (hostname.includes(".localhost")) {
     return hostname.split(".")[0];
   }

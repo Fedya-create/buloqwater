@@ -313,3 +313,109 @@ model Application {
   @@index([createdAt])
   @@map("applications")
 }
+
+
+// ============================================================
+// SUPPORT TICKET (Yordam so'rovi)
+// ============================================================
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model SupportTicket {
+  id          String         @id @default(uuid())
+  subject     String
+  description String
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+  adminNote   String?
+  resolvedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  companyId   String?
+  companyName String?
+  userId      String?
+  userName    String?
+  userPhone   String?
+
+  replies     TicketReply[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+  @@map("support_tickets")
+}
+
+model TicketReply {
+  id        String   @id @default(uuid())
+  message   String
+  isAdmin   Boolean  @default(false)
+  authorName String
+  createdAt DateTime @default(now())
+
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@map("ticket_replies")
+}
+
+// ============================================================
+// GLOBAL SETTING (Global sozlamalar)
+// ============================================================
+
+model GlobalSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  label       String
+  description String?
+  category    String   @default("general")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([key])
+  @@map("global_settings")
+}
+
+// ============================================================
+// MESSAGE (Xabarlar - Super Admin tomonidan kompaniyalarga)
+// ============================================================
+
+enum MessageType {
+  INFO
+  WARNING
+  URGENT
+  ANNOUNCEMENT
+}
+
+model Message {
+  id          String      @id @default(uuid())
+  title       String
+  content     String
+  type        MessageType @default(INFO)
+  isGlobal    Boolean     @default(false)   // Barcha kompaniyalarga
+  isRead      Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+
+  companyId   String?     // NULL bo'lsa - global xabar
+  companyName String?
+
+  @@index([companyId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("messages")
+}
