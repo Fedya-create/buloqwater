@@ -74,9 +74,6 @@ export async function updateProductPrice(productId: string, newPrice: number): P
   }
 }
 
-
-
-// ── Mahsulotni to'liq yangilash ───────────────────────────────
 interface UpdateProductInput {
   name?: string;
   description?: string;
@@ -111,7 +108,6 @@ export async function updateProduct(productId: string, input: UpdateProductInput
   }
 }
 
-// ── Mahsulot statusini o'zgartirish ───────────────────────────
 export async function toggleProductStatus(productId: string): Promise<ActionResult> {
   try {
     const session = await getServerSession(authOptions);
@@ -130,5 +126,30 @@ export async function toggleProductStatus(productId: string): Promise<ActionResu
     return { success: true };
   } catch (error) {
     return { success: false, error: "Status o'zgartirishda xatolik" };
+  }
+}
+export async function getProductTemplates(): Promise<ActionResult<any[]>> {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user.companyId) return { success: false, error: "Ruxsat yo'q" };
+
+    const globalCompany = await prisma.company.findUnique({
+      where: { subdomain: "global-templates" },
+    });
+
+    if (!globalCompany) return { success: true, data: [] };
+
+    const templates = await prisma.product.findMany({
+      where: { companyId: globalCompany.id, isActive: true },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true, name: true, description: true, price: true,
+        category: true, imageUrl: true, isBottle: true,
+      },
+    });
+
+    return { success: true, data: templates };
+  } catch (error) {
+    return { success: false, error: "Shablonlar yuklanmadi" };
   }
 }
