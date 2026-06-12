@@ -246,7 +246,7 @@ model Order {
   company         Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   customerId      String
-  customer        Customer    @relation(fields: [customerId], references: [id])
+  customer        Customer    @relation(fields: [customerId], references: [id], onDelete: Restrict)
 
   operatorId      String?
   operator        User?       @relation("OperatorOrders", fields: [operatorId], references: [id])
@@ -279,7 +279,7 @@ model OrderItem {
   order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   productId   String
-  product     Product   @relation(fields: [productId], references: [id])
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@index([orderId])
   @@map("order_items")

@@ -91,20 +91,26 @@ export async function createOrder(input: CreateOrderInput): Promise<ActionResult
       return { productId: item.productId, quantity: item.quantity, unitPrice: product.price, totalPrice: itemTotal };
     });
 
-    const lastOrder = await prisma.order.findFirst({ where: { companyId }, orderBy: { orderNumber: "desc" } });
-    const nextOrderNumber = (lastOrder?.orderNumber || 0) + 1;
+    await prisma.$transaction(async (tx) => {
+      const lastOrder = await tx.order.findFirst({
+        where: { companyId },
+        orderBy: { orderNumber: "desc" },
+        select: { orderNumber: true },
+      });
+      const nextOrderNumber = (lastOrder?.orderNumber || 0) + 1;
 
-    await prisma.order.create({
-      data: {
-        orderNumber: nextOrderNumber,
-        companyId,
-        customerId: input.customerId,
-        operatorId: session.user.id,
-        totalAmount,
-        bottlesDelivered: totalBottles,
-        status: "PENDING",
-        items: { create: orderItems },
-      },
+      await tx.order.create({
+        data: {
+          orderNumber: nextOrderNumber,
+          companyId,
+          customerId: input.customerId,
+          operatorId: session.user.id,
+          totalAmount,
+          bottlesDelivered: totalBottles,
+          status: "PENDING",
+          items: { create: orderItems },
+        },
+      });
     });
 
     return { success: true, message: "Buyurtma yaratildi" };
@@ -141,10 +147,14 @@ export async function deliverOrder(input: DeliverOrderInput): Promise<ActionResu
     if (!session?.user.companyId) return { success: false, error: "Ruxsat yo'q" };
 
     const order = await prisma.order.findFirst({
-      where: { id: input.orderId, companyId: session.user.companyId },
+      where: {
+        id: input.orderId,
+        companyId: session.user.companyId,
+        driverId: session.user.id,
+      },
       include: { customer: true },
     });
-    if (!order) return { success: false, error: "Buyurtma topilmadi" };
+    if (!order) return { success: false, error: "Buyurtma topilmadi yoki ruxsat yo'q" };
 
     await prisma.$transaction(async (tx) => {
       await tx.order.update({
