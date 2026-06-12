@@ -21,6 +21,8 @@ export async function getProducts(): Promise<ActionResult<any[]>> {
     return { success: false, error: "Mahsulotlar yuklanmadi" };
   }
 }
+
+interface CreateProductInput {
   name: string;
   description?: string;
   imageUrl?: string;
@@ -51,7 +53,9 @@ export async function createProduct(input: CreateProductInput): Promise<ActionRe
     console.error("[createProduct]", error);
     return { success: false, error: "Mahsulot yaratishda xatolik" };
   }
-}(productId: string, newPrice: number): Promise<ActionResult> {
+}
+
+export async function updateProductPrice(productId: string, newPrice: number): Promise<ActionResult> {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user.companyId) return { success: false, error: "Ruxsat yo'q" };
@@ -72,6 +76,8 @@ export async function createProduct(input: CreateProductInput): Promise<ActionRe
     return { success: false, error: "Narx o'zgartirishda xatolik" };
   }
 }
+
+interface UpdateProductInput {
   name?: string;
   description?: string;
   imageUrl?: string;
@@ -127,6 +133,7 @@ export async function toggleProductStatus(productId: string): Promise<ActionResu
     return { success: false, error: "Status o'zgartirishda xatolik" };
   }
 }
+
 export async function getProductTemplates(): Promise<ActionResult<any[]>> {
   try {
     const session = await getServerSession(authOptions);

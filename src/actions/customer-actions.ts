@@ -33,7 +33,9 @@ export async function getCustomers(search?: string): Promise<ActionResult<any[]>
     console.error("[getCustomers]", error);
     return { success: false, error: "Mijozlar yuklanmadi" };
   }
-}(query: string): Promise<ActionResult<any[]>> {
+}
+
+export async function searchCustomers(query: string): Promise<ActionResult<any[]>> {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user.companyId) return { success: false, error: "Ruxsat yo'q" };
@@ -58,6 +60,8 @@ export async function getCustomers(search?: string): Promise<ActionResult<any[]>
     return { success: false, error: "Qidiruv xatoligi" };
   }
 }
+
+interface CreateCustomerInput {
   name: string;
   phone1: string;
   phone2?: string;
