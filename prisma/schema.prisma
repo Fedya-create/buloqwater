@@ -70,12 +70,13 @@ model Company {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  users         User[]
-  customers     Customer[]
-  products      Product[]
-  orders        Order[]
-  subscription  Subscription?
-  activityLogs  ActivityLog[]
+  users               User[]
+  customers           Customer[]
+  products            Product[]
+  orders              Order[]
+  subscription        Subscription?
+  activityLogs        ActivityLog[]
+  companySubscriptions CompanySubscription[] @relation("CompanySubscriptions")
 
   @@index([subdomain])
   @@map("companies")
@@ -286,6 +287,304 @@ model OrderItem {
 }
 
 
+
+// ============================================================
+// PLAN (Tarif rejalari)
+// ============================================================
+
+model Plan {
+  id              String    @id @default(uuid())
+  name            String    @unique   // "Free", "Start", "Business", "Enterprise"
+  displayName     String
+  description     String?
+  price           Float     @default(0)
+  durationDays    Int       @default(30)
+  maxUsers        Int       @default(5)
+  maxCustomers    Int       @default(100)
+  maxOrders       Int       @default(1000)
+  storageGB       Float     @default(1)
+  features        String?   // JSON: ["Buyurtma boshqaruvi", "SMS bildirishnoma"]
+  isActive        Boolean   @default(true)
+  isPopular       Boolean   @default(false)
+  sortOrder       Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  subscriptions   CompanySubscription[]
+
+  @@index([isActive])
+  @@map("plans")
+}
+
+// ============================================================
+// COMPANY SUBSCRIPTION (Kompaniya obuna tarixi)
+// ============================================================
+
+model CompanySubscription {
+  id          String              @id @default(uuid())
+  startDate   DateTime            @default(now())
+  endDate     DateTime
+  amount      Float               @default(0)
+  isPaid      Boolean             @default(false)
+  status      SubscriptionStatus  @default(ACTIVE)
+  notes       String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  companyId   String
+  company     Company             @relation("CompanySubscriptions", fields: [companyId], references: [id], onDelete: Cascade)
+
+  planId      String?
+  plan        Plan?               @relation(fields: [planId], references: [id], onDelete: SetNull)
+
+  payments    CompanyPayment[]
+
+  @@index([companyId])
+  @@index([status])
+  @@index([endDate])
+  @@map("company_subscriptions")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  TRIAL
+}
+
+// ============================================================
+// COMPANY PAYMENT (To'lovlar tarixi - kengaytirilgan)
+// ============================================================
+
+model CompanyPayment {
+  id              String          @id @default(uuid())
+  amount          Float
+  currency        String          @default("UZS")
+  description     String?
+  method          PaymentMethod   @default(CASH)
+  status          PaymentStatus   @default(COMPLETED)
+  transactionId   String?
+  paidAt          DateTime        @default(now())
+  createdAt       DateTime        @default(now())
+
+  subscriptionId  String?
+  subscription    CompanySubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  companyId       String?
+  companyName     String?
+
+  @@index([companyId])
+  @@index([paidAt])
+  @@index([method])
+  @@map("company_payments")
+}
+
+enum PaymentMethod {
+  CASH
+  CLICK
+  PAYME
+  UZUM
+  STRIPE
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// ============================================================
+// AUDIT LOG (Kim nima qildi — kengaytirilgan)
+// ============================================================
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  action      String    // "user.create", "company.suspend", "order.delete"
+  entity      String    // "User", "Company", "Order"
+  entityId    String?
+  oldValue    String?   // JSON
+  newValue    String?   // JSON
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  actorId     String?   // Kim qildi
+  actorName   String?
+  actorRole   String?
+  companyId   String?
+  companyName String?
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([entity])
+  @@index([actorId])
+  @@index([companyId])
+  @@map("audit_logs")
+}
+
+// ============================================================
+// SYSTEM LOG (Server/API xatoliklari)
+// ============================================================
+
+model SystemLog {
+  id          String        @id @default(uuid())
+  level       LogLevel      @default(INFO)
+  source      String        // "api", "database", "server", "cron"
+  message     String
+  stack       String?       // Error stack trace
+  metadata    String?       // JSON
+  createdAt   DateTime      @default(now())
+
+  @@index([level])
+  @@index([source])
+  @@index([createdAt])
+  @@map("system_logs")
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+// ============================================================
+// NOTIFICATION (Xabar markazi — platformadan)
+// ============================================================
+
+model Notification {
+  id          String              @id @default(uuid())
+  title       String
+  body        String
+  type        NotificationType    @default(INFO)
+  channel     NotificationChannel @default(IN_APP)
+  isGlobal    Boolean             @default(false)
+  sentAt      DateTime?
+  createdAt   DateTime            @default(now())
+
+  companyId   String?
+  companyName String?
+  createdById String?
+
+  @@index([companyId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  DANGER
+  ANNOUNCEMENT
+}
+
+enum NotificationChannel {
+  IN_APP
+  SMS
+  TELEGRAM
+  PUSH
+  EMAIL
+}
+
+// ============================================================
+// BACKUP (Zaxira nusxalar)
+// ============================================================
+
+model Backup {
+  id          String        @id @default(uuid())
+  name        String
+  type        BackupType    @default(MANUAL)
+  status      BackupStatus  @default(PENDING)
+  sizeBytes   BigInt?
+  filePath    String?
+  notes       String?
+  startedAt   DateTime      @default(now())
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
+
+  createdById String?
+  createdByName String?
+
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@map("backups")
+}
+
+enum BackupType {
+  MANUAL
+  AUTO
+  SCHEDULED
+}
+
+enum BackupStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+// ============================================================
+// PERMISSION (Ruxsatlar)
+// ============================================================
+
+model Permission {
+  id          String    @id @default(uuid())
+  key         String    @unique  // "users.create", "orders.view"
+  label       String
+  description String?
+  category    String    // "users", "orders", "reports"
+  createdAt   DateTime  @default(now())
+
+  rolePermissions RolePermission[]
+
+  @@index([category])
+  @@map("permissions")
+}
+
+// ============================================================
+// ROLE PERMISSION (Rol-Ruxsat bog'lanishi)
+// ============================================================
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  role         String     // "DIRECTOR", "OPERATOR", "DRIVER"
+  createdAt    DateTime   @default(now())
+
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([role, permissionId])
+  @@index([role])
+  @@map("role_permissions")
+}
+
+// ============================================================
+// SESSION LOG (Login tarixi)
+// ============================================================
+
+model SessionLog {
+  id          String    @id @default(uuid())
+  userId      String
+  userName    String?
+  userRole    String?
+  companyId   String?
+  companyName String?
+  ipAddress   String?
+  userAgent   String?
+  action      String    @default("login")  // "login", "logout"
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([companyId])
+  @@index([createdAt])
+  @@map("session_logs")
+}
 
 // ============================================================
 // APPLICATION (Firma zayavkasi)

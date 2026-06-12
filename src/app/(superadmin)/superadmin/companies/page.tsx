@@ -11,6 +11,7 @@ import { formatDateOnly, formatPhone } from "@/lib/utils";
 import {
   createCompany, getCompanies, toggleCompanyStatus, updateCompany, extendSubscription,
 } from "@/actions/company-actions";
+import { getCompanyDirectorCredentials } from "@/actions/superadmin-loginas-actions";
 
 interface Company {
   id: string; name: string; subdomain: string; status: "ACTIVE" | "SUSPENDED";
@@ -29,6 +30,7 @@ export default function CompaniesPage() {
   const [subscriptionCompany, setSubscriptionCompany] = useState<Company | null>(null);
   const [settingsCompany, setSettingsCompany] = useState<Company | null>(null);
   const [confirmToggle, setConfirmToggle] = useState<Company | null>(null);
+  const [loginAsModal, setLoginAsModal] = useState<{ company: Company; credentials: any } | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "SUSPENDED">("ALL");
@@ -259,7 +261,12 @@ export default function CompaniesPage() {
                           <Button variant="ghost" size="sm" onClick={() => openSettings(company)}>⚙️</Button>
                         </Tooltip>
                         <Tooltip text="Kompaniya sifatida kirish">
-                          <Button variant="ghost" size="sm" className="text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20">👁️</Button>
+                          <Button variant="ghost" size="sm" className="text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                            onClick={async () => {
+                              const r = await getCompanyDirectorCredentials(company.id);
+                              if (r.success && r.data) setLoginAsModal({ company, credentials: r.data });
+                              else showToast((r as any).error || "Xatolik", "error");
+                            }}>👁️</Button>
                         </Tooltip>
                       </div>
                       <Button
@@ -397,6 +404,42 @@ export default function CompaniesPage() {
           <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Maks. xodimlar</label><Input type="number" value={settingsForm.maxUsers} onChange={(e) => setSettingsForm({ ...settingsForm, maxUsers: e.target.value })} min={1} /></div>
           <div className="flex justify-end gap-3 pt-4"><Button type="button" variant="outline" onClick={() => setSettingsCompany(null)}>Bekor</Button><Button type="submit" disabled={formLoading}>{formLoading ? "..." : "Saqlash"}</Button></div>
         </form>
+      </Modal>
+
+      {/* Login As Modal */}
+      <Modal open={!!loginAsModal} onClose={() => setLoginAsModal(null)} title={`👁️ Kompaniyaga kirish: ${loginAsModal?.company.name || ""}`}>
+        {loginAsModal && (
+          <div className="space-y-4">
+            <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl">
+              <p className="text-sm text-indigo-700 dark:text-indigo-300 font-medium">ℹ️ Direktor sifatida kirish ma'lumotlari</p>
+              <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Bu amal audit logga yoziladi</p>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Kompaniya</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">{loginAsModal.credentials.companyName}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Subdomen</span>
+                <code className="text-sm font-mono text-primary-600 dark:text-primary-400">{loginAsModal.credentials.subdomain}.buloqwater.uz</code>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Telefon</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatPhone(loginAsModal.credentials.directorPhone)}</span>
+              </div>
+            </div>
+            <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl">
+              <p className="text-xs text-yellow-700 dark:text-yellow-300">⚠️ Parolni bilmasangiz "Foydalanuvchilar" bo'limida parolni tiklang</p>
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setLoginAsModal(null)}>Yopish</Button>
+              <Button className="bg-indigo-500 hover:bg-indigo-600 text-white"
+                onClick={() => window.open(`https://${loginAsModal.credentials.subdomain}.buloqwater.uz/login`, "_blank")}>
+                🚀 Saytga o'tish
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
