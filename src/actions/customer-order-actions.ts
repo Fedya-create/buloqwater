@@ -183,8 +183,9 @@ export async function placeCustomerOrder(input: PlaceOrderInput): Promise<Action
     if (products.length === 0) return { success: false, error: "Mahsulotlar topilmadi" };
 
     // Cross-tenant tekshiruvi: barcha mahsulotlar bir kompaniyaga tegishli bo'lishi shart
-    const uniqueCompanyIds = [...new Set(products.map((p) => p.companyId))];
-    if (uniqueCompanyIds.length > 1) {
+    const firstCompanyId = products[0].companyId;
+    const hasMixedCompanies = products.some((p) => p.companyId !== firstCompanyId);
+    if (hasMixedCompanies) {
       return { success: false, error: "Faqat bitta kompaniya mahsulotlarini buyurtma qilish mumkin" };
     }
 
