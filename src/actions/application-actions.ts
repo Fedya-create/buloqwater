@@ -35,6 +35,7 @@ export async function submitApplication(input: SubmitApplicationInput): Promise<
 
     return { success: true, message: "Zayavka muvaffaqiyatli yuborildi! Tez orada siz bilan bog'lanamiz." };
   } catch (error) {
+    console.error("[submitApplication]", error);
     return { success: false, error: "Zayavka yuborishda xatolik" };
   }
 }
@@ -51,6 +52,7 @@ export async function getApplications(): Promise<ActionResult<any[]>> {
 
     return { success: true, data: applications.map((a) => ({ ...a, createdAt: a.createdAt.toISOString(), updatedAt: a.updatedAt.toISOString() })) };
   } catch (error) {
+    console.error("[getApplications]", error);
     return { success: false, error: "Zayavkalar yuklanmadi" };
   }
 }
@@ -64,6 +66,7 @@ export async function approveApplication(id: string): Promise<ActionResult> {
     await prisma.application.update({ where: { id }, data: { status: "APPROVED" } });
     return { success: true };
   } catch (error) {
+    console.error("[approveApplication]", error);
     return { success: false, error: "Qabul qilishda xatolik" };
   }
 }
@@ -77,6 +80,7 @@ export async function rejectApplication(id: string, note?: string): Promise<Acti
     await prisma.application.update({ where: { id }, data: { status: "REJECTED", adminNote: note || null } });
     return { success: true };
   } catch (error) {
+    console.error("[rejectApplication]", error);
     return { success: false, error: "Rad etishda xatolik" };
   }
 }

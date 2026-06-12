@@ -111,24 +111,44 @@ async function getPaymentBreakdown(companyId: string, today: Date) {
 }
 
 async function getWeeklyData(companyId: string, today: Date) {
-  const data = [];
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 6);
+
   const dayNames = ["Yak", "Dush", "Sesh", "Chor", "Pay", "Jum", "Shan"];
   const monthNames = ["yan", "fev", "mar", "apr", "may", "iyun", "iyul", "avg", "sen", "okt", "noy", "dek"];
 
-  for (let i = 6; i >= 0; i--) {
-    const dayStart = new Date(today); dayStart.setDate(dayStart.getDate() - i);
-    const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
+  // Oxirgi 7 kun uchun buyurtmalarni bir so'rovda olamiz
+  const [allOrders, deliveredOrders] = await Promise.all([
+    prisma.order.findMany({
+      where: { companyId, createdAt: { gte: weekAgo } },
+      select: { createdAt: true },
+    }),
+    prisma.order.findMany({
+      where: { companyId, status: "DELIVERED", deliveredAt: { gte: weekAgo } },
+      select: { deliveredAt: true, totalAmount: true },
+    }),
+  ]);
 
-    const [orders, revenue] = await Promise.all([
-      prisma.order.count({ where: { companyId, createdAt: { gte: dayStart, lt: dayEnd } } }),
-      prisma.order.aggregate({ where: { companyId, status: "DELIVERED", deliveredAt: { gte: dayStart, lt: dayEnd } }, _sum: { totalAmount: true } }),
-    ]);
+  const data = [];
+  for (let i = 6; i >= 0; i--) {
+    const dayStart = new Date(today);
+    dayStart.setDate(dayStart.getDate() - i);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+
+    const orders = allOrders.filter(
+      (o) => o.createdAt >= dayStart && o.createdAt < dayEnd
+    ).length;
+
+    const revenue = deliveredOrders
+      .filter((o) => o.deliveredAt && o.deliveredAt >= dayStart && o.deliveredAt < dayEnd)
+      .reduce((sum, o) => sum + o.totalAmount, 0);
 
     data.push({
       day: dayNames[dayStart.getDay()],
       date: `${dayStart.getDate()}-${monthNames[dayStart.getMonth()]}`,
       orders,
-      revenue: revenue._sum.totalAmount || 0,
+      revenue,
     });
   }
   return data;

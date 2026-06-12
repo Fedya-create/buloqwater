@@ -30,11 +30,10 @@ export async function getCustomers(search?: string): Promise<ActionResult<any[]>
 
     return { success: true, data: customers as any };
   } catch (error) {
+    console.error("[getCustomers]", error);
     return { success: false, error: "Mijozlar yuklanmadi" };
   }
-}
-
-export async function searchCustomers(query: string): Promise<ActionResult<any[]>> {
+}(query: string): Promise<ActionResult<any[]>> {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user.companyId) return { success: false, error: "Ruxsat yo'q" };
@@ -55,11 +54,10 @@ export async function searchCustomers(query: string): Promise<ActionResult<any[]
 
     return { success: true, data: customers };
   } catch (error) {
+    console.error("[searchCustomers]", error);
     return { success: false, error: "Qidiruv xatoligi" };
   }
 }
-
-interface CreateCustomerInput {
   name: string;
   phone1: string;
   phone2?: string;
@@ -92,6 +90,7 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Action
 
     return { success: true, message: "Mijoz qo'shildi" };
   } catch (error: any) {
+    console.error("[createCustomer]", error);
     if (error?.code === "P2002") return { success: false, error: "Bu telefon raqami band" };
     return { success: false, error: "Mijoz yaratishda xatolik" };
   }

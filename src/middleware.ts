@@ -114,6 +114,7 @@ function redirectToRoleHome(role: string, baseUrl: string): NextResponse {
     DIRECTOR: "/admin",
     OPERATOR: "/operator/orders",
     DRIVER: "/driver/tasks",
+    CUSTOMER: "/customer",
   };
 
   const path = redirectMap[role] || "/login";

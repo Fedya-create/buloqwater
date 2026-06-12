@@ -1,12 +1,25 @@
 "use server";
 
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import type { ActionResult } from "@/types";
 
+// ── Auth yordamchi funksiyasi ─────────────────────────────────
+async function requireSuperAdmin() {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "SUPER_ADMIN") {
+    throw new Error("Ruxsat yo'q");
+  }
+  return session;
+}
+
 // ── Kompaniyalar ro'yxati (kengaytirilgan) ────────────────────
 export async function getCompanies(): Promise<ActionResult<any[]>> {
   try {
+    await requireSuperAdmin();
+
     const companies = await prisma.company.findMany({
       orderBy: { createdAt: "desc" },
       include: {
@@ -40,6 +53,10 @@ export async function getCompanies(): Promise<ActionResult<any[]>> {
 
     return { success: true, data: formatted };
   } catch (error) {
+    console.error("[getCompanies]", error);
+    if (error instanceof Error && error.message === "Ruxsat yo'q") {
+      return { success: false, error: "Ruxsat yo'q" };
+    }
     return { success: false, error: "Kompaniyalar yuklanmadi" };
   }
 }
@@ -55,6 +72,8 @@ interface CreateCompanyInput {
 
 export async function createCompany(input: CreateCompanyInput): Promise<ActionResult> {
   try {
+    await requireSuperAdmin();
+
     const existing = await prisma.company.findUnique({ where: { subdomain: input.subdomain } });
     if (existing) return { success: false, error: `"${input.subdomain}" subdomeni allaqachon band` };
 
@@ -69,14 +88,12 @@ export async function createCompany(input: CreateCompanyInput): Promise<ActionRe
         data: { name: input.directorName, phone: input.directorPhone, password: hashedPassword, role: "DIRECTOR", companyId: company.id },
       });
 
-      // Obuna yaratish (1 oylik default)
       const endDate = new Date();
       endDate.setMonth(endDate.getMonth() + 1);
       await tx.subscription.create({
         data: { companyId: company.id, endDate, isPaid: false },
       });
 
-      // Activity log
       await tx.activityLog.create({
         data: { action: "company_created", description: `"${input.companyName}" kompaniyasi yaratildi`, companyId: company.id },
       });
@@ -84,6 +101,10 @@ export async function createCompany(input: CreateCompanyInput): Promise<ActionRe
 
     return { success: true, message: "Kompaniya muvaffaqiyatli yaratildi" };
   } catch (error: any) {
+    console.error("[createCompany]", error);
+    if (error instanceof Error && error.message === "Ruxsat yo'q") {
+      return { success: false, error: "Ruxsat yo'q" };
+    }
     if (error?.code === "P2002") return { success: false, error: "Bu telefon raqami yoki subdomen band" };
     return { success: false, error: "Kompaniya yaratishda xatolik yuz berdi" };
   }
@@ -92,6 +113,8 @@ export async function createCompany(input: CreateCompanyInput): Promise<ActionRe
 // ── Kompaniya statusini o'zgartirish ──────────────────────────
 export async function toggleCompanyStatus(companyId: string): Promise<ActionResult> {
   try {
+    await requireSuperAdmin();
+
     const company = await prisma.company.findUnique({ where: { id: companyId } });
     if (!company) return { success: false, error: "Kompaniya topilmadi" };
 
@@ -111,6 +134,10 @@ export async function toggleCompanyStatus(companyId: string): Promise<ActionResu
 
     return { success: true, message: "Status o'zgartirildi" };
   } catch (error) {
+    console.error("[toggleCompanyStatus]", error);
+    if (error instanceof Error && error.message === "Ruxsat yo'q") {
+      return { success: false, error: "Ruxsat yo'q" };
+    }
     return { success: false, error: "Status o'zgartirishda xatolik" };
   }
 }
@@ -126,6 +153,8 @@ interface UpdateCompanyInput {
 
 export async function updateCompany(companyId: string, input: UpdateCompanyInput): Promise<ActionResult> {
   try {
+    await requireSuperAdmin();
+
     const company = await prisma.company.findUnique({ where: { id: companyId } });
     if (!company) return { success: false, error: "Kompaniya topilmadi" };
 
@@ -140,6 +169,10 @@ export async function updateCompany(companyId: string, input: UpdateCompanyInput
 
     return { success: true, message: "Kompaniya yangilandi" };
   } catch (error) {
+    console.error("[updateCompany]", error);
+    if (error instanceof Error && error.message === "Ruxsat yo'q") {
+      return { success: false, error: "Ruxsat yo'q" };
+    }
     return { success: false, error: "Yangilashda xatolik" };
   }
 }
@@ -147,6 +180,8 @@ export async function updateCompany(companyId: string, input: UpdateCompanyInput
 // ── Obuna muddatini uzaytirish ───────────────────────────────
 export async function extendSubscription(companyId: string, months: number, amount: number): Promise<ActionResult> {
   try {
+    await requireSuperAdmin();
+
     const company = await prisma.company.findUnique({
       where: { id: companyId },
       include: { subscription: true },
@@ -155,7 +190,6 @@ export async function extendSubscription(companyId: string, months: number, amou
 
     await prisma.$transaction(async (tx) => {
       if (company.subscription) {
-        // Mavjud obuna — muddatni uzaytirish
         const currentEnd = new Date(company.subscription.endDate);
         const baseDate = currentEnd > new Date() ? currentEnd : new Date();
         const newEnd = new Date(baseDate);
@@ -170,14 +204,12 @@ export async function extendSubscription(companyId: string, months: number, amou
           },
         });
 
-        // To'lov qayd etish
         if (amount > 0) {
           await tx.payment.create({
             data: { amount, subscriptionId: company.subscription.id, description: `${months} oylik obuna` },
           });
         }
       } else {
-        // Yangi obuna yaratish
         const endDate = new Date();
         endDate.setMonth(endDate.getMonth() + months);
 
@@ -192,7 +224,6 @@ export async function extendSubscription(companyId: string, months: number, amou
         }
       }
 
-      // Activity log
       await tx.activityLog.create({
         data: {
           action: "subscription_extended",
@@ -204,15 +235,19 @@ export async function extendSubscription(companyId: string, months: number, amou
 
     return { success: true, message: "Obuna uzaytirildi" };
   } catch (error) {
+    console.error("[extendSubscription]", error);
+    if (error instanceof Error && error.message === "Ruxsat yo'q") {
+      return { success: false, error: "Ruxsat yo'q" };
+    }
     return { success: false, error: "Obuna uzaytirishda xatolik" };
   }
 }
 
-
-
 // ── Kompaniya statistikasi (batafsil) ─────────────────────────
 export async function getCompanyStats(companyId: string): Promise<ActionResult<any>> {
   try {
+    await requireSuperAdmin();
+
     const company = await prisma.company.findUnique({
       where: { id: companyId },
       include: { subscription: { select: { endDate: true, isPaid: true, amount: true } } },
@@ -240,6 +275,10 @@ export async function getCompanyStats(companyId: string): Promise<ActionResult<a
       },
     };
   } catch (error) {
+    console.error("[getCompanyStats]", error);
+    if (error instanceof Error && error.message === "Ruxsat yo'q") {
+      return { success: false, error: "Ruxsat yo'q" };
+    }
     return { success: false, error: "Statistika yuklanmadi" };
   }
 }

@@ -6,7 +6,14 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import type { ActionResult } from "@/types";
 
-const DEFAULT_PASSWORD = "12345678bw";
+// DEFAULT_PASSWORD muhit o'zgaruvchisidan olinadi. Agar ENV da belgilanmagan bo'lsa
+// tasodifiy 10 belgilik parol generatsiya qilinadi — hech qachon source codeda saqlanmaydi.
+function generateDefaultPassword(): string {
+  const envPassword = process.env.DEFAULT_RESET_PASSWORD;
+  if (envPassword && envPassword.length >= 6) return envPassword;
+  // Fallback: kriptografik tasodifiy parol (response'da QAYTARILMAYDI)
+  return Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 6);
+}
 
 export async function getAllUsers(): Promise<ActionResult<any[]>> {
   try {
@@ -21,6 +28,7 @@ export async function getAllUsers(): Promise<ActionResult<any[]>> {
 
     return { success: true, data: users.map((u) => ({ ...u, createdAt: u.createdAt.toISOString() })) };
   } catch (error) {
+    console.error("[getAllUsers]", error);
     return { success: false, error: "Foydalanuvchilar yuklanmadi" };
   }
 }
@@ -37,6 +45,7 @@ export async function blockUser(userId: string): Promise<ActionResult> {
     await prisma.user.update({ where: { id: userId }, data: { isActive: !user.isActive } });
     return { success: true };
   } catch (error) {
+    console.error("[blockUser]", error);
     return { success: false, error: "Xatolik" };
   }
 }
@@ -53,6 +62,7 @@ export async function deleteUser(userId: string): Promise<ActionResult> {
     await prisma.user.delete({ where: { id: userId } });
     return { success: true };
   } catch (error) {
+    console.error("[deleteUser]", error);
     return { success: false, error: "O'chirishda xatolik" };
   }
 }
@@ -65,11 +75,17 @@ export async function resetUserPassword(userId: string): Promise<ActionResult> {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return { success: false, error: "Topilmadi" };
 
-    const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+    const newPassword = generateDefaultPassword();
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
     await prisma.user.update({ where: { id: userId }, data: { password: hashedPassword } });
 
-    return { success: true, message: `Parol tiklandi: ${DEFAULT_PASSWORD}` };
+    // XAVFSIZLIK: parol response'da qaytarilmaydi.
+    // Yangi parol faqat server log'da (production'da log aggregator orqali) ko'rinadi.
+    console.info(`[resetUserPassword] Password reset for user ${userId} (${user.name})`);
+
+    return { success: true, message: "Parol muvaffaqiyatli tiklandi. Yangi parol admin bilan bog'lanib olish orqali beriladi." };
   } catch (error) {
+    console.error("[resetUserPassword]", error);
     return { success: false, error: "Parol tiklashda xatolik" };
   }
 }

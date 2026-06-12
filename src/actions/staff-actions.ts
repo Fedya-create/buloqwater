@@ -75,6 +75,7 @@ export async function getStaff(): Promise<ActionResult<any[]>> {
 
     return { success: true, data: formatted };
   } catch (error) {
+    console.error("[getStaff]", error);
     return { success: false, error: "Xodimlar yuklanmadi" };
   }
 }
@@ -90,6 +91,15 @@ export async function createStaff(input: CreateStaffInput): Promise<ActionResult
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user.companyId) return { success: false, error: "Ruxsat yo'q" };
+
+    // ── maxUsers limit tekshiruvi ──────────────────────────────
+    const company = await prisma.company.findUnique({
+      where: { id: session.user.companyId },
+      select: { maxUsers: true, _count: { select: { users: true } } },
+    });
+    if (company && company.maxUsers > 0 && company._count.users >= company.maxUsers) {
+      return { success: false, error: `Xodimlar limiti to'ldi (maksimal: ${company.maxUsers} ta)` };
+    }
 
     const existing = await prisma.user.findFirst({
       where: { phone: input.phone, companyId: session.user.companyId },
@@ -110,6 +120,7 @@ export async function createStaff(input: CreateStaffInput): Promise<ActionResult
 
     return { success: true, message: "Xodim muvaffaqiyatli qo'shildi" };
   } catch (error: any) {
+    console.error("[createStaff]", error);
     if (error?.code === "P2002") return { success: false, error: "Bu telefon raqami band" };
     return { success: false, error: "Xodim yaratishda xatolik" };
   }
@@ -132,6 +143,7 @@ export async function toggleStaffStatus(userId: string): Promise<ActionResult> {
 
     return { success: true };
   } catch (error) {
+    console.error("[toggleStaffStatus]", error);
     return { success: false, error: "Status o'zgartirishda xatolik" };
   }
 }
@@ -173,6 +185,7 @@ export async function updateStaffMember(userId: string, input: UpdateStaffInput)
     await prisma.user.update({ where: { id: userId }, data: updateData });
     return { success: true, message: "Xodim yangilandi" };
   } catch (error) {
+    console.error("[updateStaffMember]", error);
     return { success: false, error: "Yangilashda xatolik" };
   }
 }

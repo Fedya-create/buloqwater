@@ -191,7 +191,7 @@ export default function OrdersPage() {
     <div className="relative">
       {/* Toast */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg border ${toast.type === "success" ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-800"}`}>
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg border ${toast.type === "success" ? "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200" : "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200"}`}>
           <p className="text-sm font-medium">{toast.type === "success" ? "✅" : "❌"} {toast.message}</p>
         </div>
       )}
@@ -208,6 +208,7 @@ export default function OrdersPage() {
           { key: "PENDING", label: "Kutilmoqda" },
           { key: "ASSIGNED", label: "Jarayonda" },
           { key: "DELIVERED", label: "Yetkazildi" },
+          { key: "CANCELLED", label: "Bekor qilingan" },
         ] as { key: TabFilter; label: string }[]).map((tab) => (
           <button key={tab.key} className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab.key ? "bg-primary-500 text-white shadow-md" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"}`} onClick={() => setActiveTab(tab.key)}>
             {tab.label}
@@ -404,7 +405,7 @@ function OrderCard({ order, drivers, onAssign }: { order: any; drivers: any[]; o
   const borderColor = isLate ? "border-l-red-500" : isNew ? "border-l-green-500" : order.status === "ASSIGNED" ? "border-l-blue-500" : order.status === "DELIVERED" ? "border-l-green-400" : "border-l-yellow-500";
 
   return (
-    <div className={`bg-white rounded-xl border border-gray-100 border-l-4 ${borderColor} p-4 shadow-sm hover:shadow-md transition-all`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 border-l-4 ${borderColor} p-4 shadow-sm hover:shadow-md transition-all`}>
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -413,15 +414,15 @@ function OrderCard({ order, drivers, onAssign }: { order: any; drivers: any[]; o
             {isLate && <Badge variant="destructive">Kechikkan!</Badge>}
             {isNew && <Badge variant="success">Yangi</Badge>}
           </div>
-          <p className="text-sm font-semibold text-gray-900">{order.customer.name}</p>
-          <p className="text-xs text-gray-500 mt-0.5 truncate">{order.customer.address}</p>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">{order.customer.name}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{order.customer.address}</p>
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             <a href={`tel:${order.customer.phone1}`} className="text-xs text-blue-600 hover:underline">📞 {order.customer.phone1}</a>
             <span className="text-xs font-medium text-gray-700">💰 {formatCurrency(order.totalAmount)}</span>
           </div>
           <div className="flex flex-wrap gap-1 mt-2">
             {order.items?.map((item: any, idx: number) => (
-              <span key={idx} className="text-xs bg-gray-100 px-2 py-0.5 rounded">{item.product.name} ×{item.quantity}</span>
+              <span key={idx} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded">{item.product.name} ×{item.quantity}</span>
             ))}
           </div>
         </div>

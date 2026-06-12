@@ -33,11 +33,10 @@ export async function getCustomerProducts(): Promise<ActionResult<any[]>> {
 
     return { success: true, data: products as any };
   } catch (error) {
+    console.error("[getCustomerProducts]", error);
     return { success: false, error: "Mahsulotlar yuklanmadi" };
   }
 }
-
-// ── Mijoz profili ─────────────────────────────────────────────
 export async function getCustomerProfile(): Promise<ActionResult<any>> {
   try {
     const session = await getServerSession(authOptions);
@@ -62,11 +61,10 @@ export async function getCustomerProfile(): Promise<ActionResult<any>> {
     // Customer topilmasa — bo'sh qaytarish
     return { success: true, data: { address: "", landmark: "", locationLink: "" } };
   } catch (error) {
+    console.error("[getCustomerProfile]", error);
     return { success: false, error: "Profil yuklanmadi" };
   }
 }
-
-// ── Manzilni yangilash ────────────────────────────────────────
 export async function updateCustomerAddress(input: { address: string; landmark?: string; locationLink?: string }): Promise<ActionResult> {
   try {
     const session = await getServerSession(authOptions);
@@ -101,11 +99,10 @@ export async function updateCustomerAddress(input: { address: string; landmark?:
     // Erkin customer uchun birinchi faol kompaniyaga bog'laymiz yoki xato qaytaramiz
     return { success: false, error: "Mijoz profili topilmadi. Avval buyurtma bering." };
   } catch (error) {
+    console.error("[updateCustomerAddress]", error);
     return { success: false, error: "Manzilni yangilashda xatolik" };
   }
 }
-
-// ── Mijoz buyurtmalari tarixi ─────────────────────────────────
 export async function getCustomerOrders(): Promise<ActionResult<any[]>> {
   try {
     const session = await getServerSession(authOptions);
@@ -132,11 +129,10 @@ export async function getCustomerOrders(): Promise<ActionResult<any[]>> {
 
     return { success: true, data: orders as any };
   } catch (error) {
+    console.error("[getCustomerOrders]", error);
     return { success: false, error: "Buyurtmalar yuklanmadi" };
   }
 }
-
-// ── Idish balansi ─────────────────────────────────────────────
 export async function getCustomerBalance(): Promise<ActionResult<any>> {
   try {
     const session = await getServerSession(authOptions);
@@ -159,11 +155,10 @@ export async function getCustomerBalance(): Promise<ActionResult<any>> {
       },
     };
   } catch (error) {
+    console.error("[getCustomerBalance]", error);
     return { success: false, error: "Balans yuklanmadi" };
   }
 }
-
-// ── Mijoz buyurtma berish ─────────────────────────────────────
 interface PlaceOrderInput {
   items: { productId: string; quantity: number }[];
   notes?: string;
@@ -214,29 +209,32 @@ export async function placeCustomerOrder(input: PlaceOrderInput): Promise<Action
       return { productId: item.productId, quantity: item.quantity, unitPrice: product.price, totalPrice: itemTotal };
     });
 
-    // Order raqam
-    const lastOrder = await prisma.order.findFirst({
-      where: { companyId },
-      orderBy: { orderNumber: "desc" },
-    });
-    const nextOrderNumber = (lastOrder?.orderNumber || 0) + 1;
+    // ── RACE CONDITION FIX: transaction ichida orderNumber atomik generatsiya ──
+    await prisma.$transaction(async (tx) => {
+      const lastOrder = await tx.order.findFirst({
+        where: { companyId },
+        orderBy: { orderNumber: "desc" },
+        select: { orderNumber: true },
+      });
+      const nextOrderNumber = (lastOrder?.orderNumber || 0) + 1;
 
-    // Yaratish
-    await prisma.order.create({
-      data: {
-        orderNumber: nextOrderNumber,
-        companyId,
-        customerId: customer.id,
-        totalAmount,
-        bottlesDelivered: totalBottles,
-        notes: input.notes || null,
-        status: "PENDING",
-        items: { create: orderItems },
-      },
+      await tx.order.create({
+        data: {
+          orderNumber: nextOrderNumber,
+          companyId,
+          customerId: customer.id,
+          totalAmount,
+          bottlesDelivered: totalBottles,
+          notes: input.notes || null,
+          status: "PENDING",
+          items: { create: orderItems },
+        },
+      });
     });
 
     return { success: true, message: "Buyurtma qabul qilindi!" };
   } catch (error) {
+    console.error("[placeCustomerOrder]", error);
     return { success: false, error: "Buyurtma berishda xatolik" };
   }
 }
