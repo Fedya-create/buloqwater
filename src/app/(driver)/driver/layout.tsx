@@ -1,19 +1,12 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { redirect } from "next/navigation";
 import { useEffect } from "react";
 
-export const metadata = {
-  title: "BuloqWater - Haydovchi",
-  description: "Haydovchi vazifalar paneli",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "BuloqWater",
-  },
-};
+// metadata faqat Server Component'da ishlatiladi.
+// Bu "use client" layout bo'lgani uchun metadata ni
+// alohida metadata.ts yoki head.tsx orqali qo'shish kerak.
+// PWA manifest uchun root layout'da belgilangan.
 
 export default function DriverLayout({
   children,
@@ -53,7 +46,7 @@ export default function DriverLayout({
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* PWA-optimized Header */}
-      <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 shadow-sm safe-top">
+      <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 shadow-sm">
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <div className="flex items-center gap-3">
             <img
@@ -82,18 +75,20 @@ export default function DriverLayout({
       <main className="max-w-lg mx-auto px-4 py-4 pb-24">{children}</main>
 
       {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 shadow-lg safe-bottom z-40">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 shadow-lg z-40">
         <div className="flex items-center justify-around max-w-lg mx-auto py-2">
           <a
             href="/driver/tasks"
-            className="flex flex-col items-center gap-0.5 py-1 px-4 text-primary-600 dark:text-primary-400">
+            className="flex flex-col items-center gap-0.5 py-1 px-4 text-primary-600 dark:text-primary-400"
+          >
             <span className="text-xl">📋</span>
             <span className="text-[10px] font-bold">Vazifalar</span>
           </a>
           <button
             type="button"
             onClick={handleSignOut}
-            className="flex flex-col items-center gap-0.5 py-1 px-4 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+            className="flex flex-col items-center gap-0.5 py-1 px-4 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+          >
             <span className="text-xl">🚪</span>
             <span className="text-[10px] font-medium">Chiqish</span>
           </button>

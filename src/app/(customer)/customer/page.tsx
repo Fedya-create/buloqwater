@@ -82,7 +82,7 @@ export default function CustomerStorePage() {
           </Button>
         </div>
         <div className="absolute right-0 top-0 h-full w-1/3 opacity-20">
-          <img src="/image.png" alt="" className="h-full w-full object-cover" />
+          <img src="/icon.svg" alt="" className="h-full w-full object-cover" />
         </div>
       </div>
 
