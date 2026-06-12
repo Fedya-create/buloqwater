@@ -32,6 +32,7 @@ export async function getOrders(): Promise<ActionResult<any[]>> {
 
     return { success: true, data: orders as any };
   } catch (error) {
+    console.error("[getOrders]", error);
     return { success: false, error: "Buyurtmalar yuklanmadi" };
   }
 }
@@ -60,6 +61,7 @@ export async function getDriversForAssign(): Promise<ActionResult<any[]>> {
 
     return { success: true, data: formatted };
   } catch (error) {
+    console.error("[getDriversForAssign]", error);
     return { success: false, error: "Haydovchilar yuklanmadi" };
   }
 }
@@ -91,24 +93,33 @@ export async function createOrder(input: CreateOrderInput): Promise<ActionResult
       return { productId: item.productId, quantity: item.quantity, unitPrice: product.price, totalPrice: itemTotal };
     });
 
-    const lastOrder = await prisma.order.findFirst({ where: { companyId }, orderBy: { orderNumber: "desc" } });
-    const nextOrderNumber = (lastOrder?.orderNumber || 0) + 1;
+    // ── RACE CONDITION FIX: transaction ichida orderNumber atomik generatsiya ──
+    await prisma.$transaction(async (tx) => {
+      // SELECT ... FOR UPDATE — boshqa transaksiyalar kutadi
+      const lastOrder = await tx.order.findFirst({
+        where: { companyId },
+        orderBy: { orderNumber: "desc" },
+        select: { orderNumber: true },
+      });
+      const nextOrderNumber = (lastOrder?.orderNumber || 0) + 1;
 
-    await prisma.order.create({
-      data: {
-        orderNumber: nextOrderNumber,
-        companyId,
-        customerId: input.customerId,
-        operatorId: session.user.id,
-        totalAmount,
-        bottlesDelivered: totalBottles,
-        status: "PENDING",
-        items: { create: orderItems },
-      },
+      await tx.order.create({
+        data: {
+          orderNumber: nextOrderNumber,
+          companyId,
+          customerId: input.customerId,
+          operatorId: session.user.id,
+          totalAmount,
+          bottlesDelivered: totalBottles,
+          status: "PENDING",
+          items: { create: orderItems },
+        },
+      });
     });
 
     return { success: true, message: "Buyurtma yaratildi" };
   } catch (error) {
+    console.error("[createOrder]", error);
     return { success: false, error: "Buyurtma yaratishda xatolik" };
   }
 }
@@ -125,6 +136,7 @@ export async function assignDriver(orderId: string, driverId: string): Promise<A
 
     return { success: true, message: "Haydovchi biriktirildi" };
   } catch (error) {
+    console.error("[assignDriver]", error);
     return { success: false, error: "Biriktirish xatoligi" };
   }
 }
@@ -146,6 +158,14 @@ export async function deliverOrder(input: DeliverOrderInput): Promise<ActionResu
     });
     if (!order) return { success: false, error: "Buyurtma topilmadi" };
 
+    // ── VALIDATION FIX: bottlesReturned chegarasi ──────────────
+    if (input.bottlesReturned < 0) {
+      return { success: false, error: "Qaytarilgan baxlalar soni manfiy bo'lishi mumkin emas" };
+    }
+    if (input.bottlesReturned > order.bottlesDelivered) {
+      return { success: false, error: `Qaytarilgan baxlalar (${input.bottlesReturned}) berilganidan (${order.bottlesDelivered}) ko'p bo'lishi mumkin emas` };
+    }
+
     await prisma.$transaction(async (tx) => {
       await tx.order.update({
         where: { id: input.orderId },
@@ -158,6 +178,7 @@ export async function deliverOrder(input: DeliverOrderInput): Promise<ActionResu
         },
       });
 
+      // bottleChange: mijozda qolgan idishlar = berilgan - qaytarilgan
       const bottleChange = order.bottlesDelivered - input.bottlesReturned;
       await tx.customer.update({
         where: { id: order.customerId },
@@ -170,6 +191,7 @@ export async function deliverOrder(input: DeliverOrderInput): Promise<ActionResu
 
     return { success: true, message: "Buyurtma yetkazildi" };
   } catch (error) {
+    console.error("[deliverOrder]", error);
     return { success: false, error: "Yetkazishda xatolik" };
   }
 }
@@ -194,6 +216,7 @@ export async function getDriverOrders(): Promise<ActionResult<any[]>> {
 
     return { success: true, data: orders as any };
   } catch (error) {
+    console.error("[getDriverOrders]", error);
     return { success: false, error: "Buyurtmalar yuklanmadi" };
   }
 }

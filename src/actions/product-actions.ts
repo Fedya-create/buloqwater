@@ -17,6 +17,7 @@ export async function getProducts(): Promise<ActionResult<any[]>> {
 
     return { success: true, data: products as any };
   } catch (error) {
+    console.error("[getProducts]", error);
     return { success: false, error: "Mahsulotlar yuklanmadi" };
   }
 }
@@ -49,6 +50,7 @@ export async function createProduct(input: CreateProductInput): Promise<ActionRe
 
     return { success: true, message: "Mahsulot yaratildi" };
   } catch (error) {
+    console.error("[createProduct]", error);
     return { success: false, error: "Mahsulot yaratishda xatolik" };
   }
 }
@@ -70,6 +72,7 @@ export async function updateProductPrice(productId: string, newPrice: number): P
 
     return { success: true, message: "Narx yangilandi" };
   } catch (error) {
+    console.error("[updateProductPrice]", error);
     return { success: false, error: "Narx o'zgartirishda xatolik" };
   }
 }
@@ -104,6 +107,7 @@ export async function updateProduct(productId: string, input: UpdateProductInput
     await prisma.product.update({ where: { id: productId }, data: updateData });
     return { success: true, message: "Mahsulot yangilandi" };
   } catch (error) {
+    console.error("[updateProduct]", error);
     return { success: false, error: "Yangilashda xatolik" };
   }
 }
@@ -125,9 +129,11 @@ export async function toggleProductStatus(productId: string): Promise<ActionResu
 
     return { success: true };
   } catch (error) {
+    console.error("[toggleProductStatus]", error);
     return { success: false, error: "Status o'zgartirishda xatolik" };
   }
 }
+
 export async function getProductTemplates(): Promise<ActionResult<any[]>> {
   try {
     const session = await getServerSession(authOptions);
@@ -150,6 +156,7 @@ export async function getProductTemplates(): Promise<ActionResult<any[]>> {
 
     return { success: true, data: templates };
   } catch (error) {
+    console.error("[getProductTemplates]", error);
     return { success: false, error: "Shablonlar yuklanmadi" };
   }
 }

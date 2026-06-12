@@ -19,6 +19,7 @@ export async function getProfile(): Promise<ActionResult<any>> {
     if (!user) return { success: false, error: "Foydalanuvchi topilmadi" };
     return { success: true, data: { ...user, createdAt: user.createdAt.toISOString() } };
   } catch (error) {
+    console.error("[getProfile]", error);
     return { success: false, error: "Profil yuklanmadi" };
   }
 }
@@ -66,6 +67,7 @@ export async function updateProfile(input: UpdateProfileInput): Promise<ActionRe
     await prisma.user.update({ where: { id: session.user.id }, data: updateData });
     return { success: true, message: "Profil yangilandi" };
   } catch (error) {
+    console.error("[updateProfile]", error);
     return { success: false, error: "Profilni yangilashda xatolik" };
   }
 }

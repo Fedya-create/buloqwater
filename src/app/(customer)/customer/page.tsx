@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { getCustomerProducts } from "@/actions/customer-order-actions";
 import { CustomerCart } from "./components/cart";
 
@@ -31,6 +30,7 @@ export default function CustomerStorePage() {
     (async () => {
       const r = await getCustomerProducts();
       if (r.success && r.data) setProducts(r.data as any);
+      else console.error("[CustomerStorePage] getCustomerProducts failed:", r);
       setLoading(false);
     })();
   }, []);
@@ -82,7 +82,7 @@ export default function CustomerStorePage() {
           </Button>
         </div>
         <div className="absolute right-0 top-0 h-full w-1/3 opacity-20">
-          <img src="/image.png" alt="" className="h-full w-full object-cover" />
+          <img src="/icon.svg" alt="" className="h-full w-full object-cover" />
         </div>
       </div>
 
@@ -203,8 +203,4 @@ export default function CustomerStorePage() {
       )}
     </div>
   );
-}
-
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
 }

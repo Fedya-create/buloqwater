@@ -1,40 +1,56 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
+"use client";
 
-export const metadata = {
-  title: "BuloqWater - Haydovchi",
-  description: "Haydovchi vazifalar paneli",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "BuloqWater",
-  },
-};
+import { useSession, signOut } from "next-auth/react";
+import { useEffect } from "react";
 
-export default async function DriverLayout({
+// metadata faqat Server Component'da ishlatiladi.
+// Bu "use client" layout bo'lgani uchun metadata ni
+// alohida metadata.ts yoki head.tsx orqali qo'shish kerak.
+// PWA manifest uchun root layout'da belgilangan.
+
+export default function DriverLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
+  const { data: session, status } = useSession();
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      window.location.href = "/login";
+    }
+  }, [status]);
+
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin h-10 w-10 border-4 border-primary-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
   if (
     !session ||
     (session.user.role !== "DRIVER" &&
       session.user.role !== "DIRECTOR" &&
       session.user.role !== "SUPER_ADMIN")
-  )
-    redirect("/login");
+  ) {
+    return null;
+  }
+
+  const handleSignOut = () => {
+    const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
+    signOut({ callbackUrl: `${currentOrigin}/login` });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* PWA-optimized Header */}
-      <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 shadow-sm safe-top">
+      <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 shadow-sm">
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <div className="flex items-center gap-3">
             <img
-              src="/image.png"
+              src="/icon.svg"
               alt="BuloqWater"
               className="w-9 h-9 dark:invert"
             />
@@ -48,7 +64,7 @@ export default async function DriverLayout({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+            <span className="text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-1 rounded-full font-medium">
               🟢 {session.user.name}
             </span>
           </div>
@@ -59,22 +75,23 @@ export default async function DriverLayout({
       <main className="max-w-lg mx-auto px-4 py-4 pb-24">{children}</main>
 
       {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 shadow-lg safe-bottom z-40">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 shadow-lg z-40">
         <div className="flex items-center justify-around max-w-lg mx-auto py-2">
           <a
             href="/driver/tasks"
-            className="flex flex-col items-center gap-0.5 py-1 px-4 text-primary-600">
+            className="flex flex-col items-center gap-0.5 py-1 px-4 text-primary-600 dark:text-primary-400"
+          >
             <span className="text-xl">📋</span>
             <span className="text-[10px] font-bold">Vazifalar</span>
           </a>
-          <form action="/api/auth/signout" method="POST">
-            <button
-              type="submit"
-              className="flex flex-col items-center gap-0.5 py-1 px-4 text-gray-400 hover:text-red-500">
-              <span className="text-xl">🚪</span>
-              <span className="text-[10px] font-medium">Chiqish</span>
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="flex flex-col items-center gap-0.5 py-1 px-4 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+          >
+            <span className="text-xl">🚪</span>
+            <span className="text-[10px] font-medium">Chiqish</span>
+          </button>
         </div>
       </nav>
     </div>
