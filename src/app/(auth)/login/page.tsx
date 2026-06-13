@@ -111,8 +111,8 @@ function LoginForm() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/">
-            <div className="relative h-28 sm:h-48 mx-auto mb-4">
-              <img src="/image.png" alt="BuloqWater Logo" className="w-full h-full object-contain transition-all duration-300" />
+            <div className="relative h-28 sm:h-48 mx-auto mb-4 flex items-center justify-center">
+              <img src="/icon.svg" alt="BuloqWater Logo" className="w-full h-full object-contain transition-all duration-300" />
             </div>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">BuloqWater</h1>
