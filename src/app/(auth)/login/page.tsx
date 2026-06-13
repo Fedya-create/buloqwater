@@ -47,7 +47,7 @@ function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    loading(true);
     setErrorMsg("");
     setSuccessMsg("");
 
@@ -177,7 +177,6 @@ function LoginForm() {
                   required
                   disabled={loading || !!successMsg}
                 />
-                {/* Ko'zcha ikonkasi — placeholder rangi bilan bir xil, diqqatni chalg'itmaydi */}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -199,7 +198,7 @@ function LoginForm() {
               </div>
             </div>
 
-            {/* Submit — primary-600 for better contrast */}
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading || !!successMsg}
@@ -228,13 +227,21 @@ function LoginForm() {
           </form>
         </div>
 
-        {/* Footer links — ro'yxatdan o'tish o'rniga parolni unutdim */}
-        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
-          Parolni unutdingizmi?{" "}
-          <Link href="/forgot-password" className="text-primary-600 font-medium hover:underline">
-            Tiklash
-          </Link>
-        </p>
+        {/* Footer links — Tozalangan, Git belgilari olib tashlangan barqaror qism */}
+        <div className="mt-6 space-y-2 text-center text-sm text-gray-500 dark:text-gray-400">
+          <p>
+            Parolni unutdingizmi?{" "}
+            <Link href="/forgot-password" className="text-primary-600 font-medium hover:underline">
+              Tiklash
+            </Link>
+          </p>
+          <p>
+            Hisobingiz yo&apos;qmi?{" "}
+            <Link href="/register" className="text-primary-600 font-medium hover:underline">
+              Ro&apos;yxatdan o&apos;tish
+            </Link>
+          </p>
+        </div>
 
         {/* Dinamik copyright yili */}
         <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">
