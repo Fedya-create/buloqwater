@@ -47,7 +47,7 @@ function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    loading(true);
     setErrorMsg("");
     setSuccessMsg("");
 
@@ -177,7 +177,6 @@ function LoginForm() {
                   required
                   disabled={loading || !!successMsg}
                 />
-                {/* Ko'zcha ikonkasi — placeholder rangi bilan bir xil, diqqatni chalg'itmaydi */}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -199,7 +198,7 @@ function LoginForm() {
               </div>
             </div>
 
-            {/* Submit — primary-600 for better contrast */}
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading || !!successMsg}
@@ -228,7 +227,7 @@ function LoginForm() {
           </form>
         </div>
 
-        {/* Footer links */}
+        {/* Footer links — Tozalangan, Git belgilari olib tashlangan barqaror qism */}
         <div className="mt-6 space-y-2 text-center text-sm text-gray-500 dark:text-gray-400">
           <p>
             Parolni unutdingizmi?{" "}
