@@ -59,7 +59,7 @@ export default function RBACPage() {
       const current = prev[selectedRole] || [];
       const updated = allSelected
         ? current.filter(k => !catPerms.includes(k))
-        : [...new Set([...current, ...catPerms])];
+        : current.concat(catPerms.filter(k => !current.includes(k)));
       return { ...prev, [selectedRole]: updated };
     });
     setIsDirty(true);
@@ -82,7 +82,7 @@ export default function RBACPage() {
     setSaving(false);
   };
 
-  const categories = [...new Set(permissions.map(p => p.category))];
+  const categories = permissions.map(p => p.category).filter((cat, idx, arr) => arr.indexOf(cat) === idx);
 
   return (
     <div className="relative">
