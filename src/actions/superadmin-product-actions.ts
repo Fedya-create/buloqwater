@@ -65,6 +65,12 @@ export async function updateGlobalProduct(productId: string, input: GlobalProduc
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "SUPER_ADMIN") return { success: false, error: "Ruxsat yo'q" };
 
+    // Ownership tekshiruvi: faqat global-templates kompaniyasining mahsuloti o'zgartirilsin
+    const product = await prisma.product.findFirst({
+      where: { id: productId, company: { subdomain: "global-templates" } },
+    });
+    if (!product) return { success: false, error: "Mahsulot topilmadi yoki ruxsat yo'q" };
+
     const desc = input.tags.length > 0
       ? (input.description ? `${input.description}\n#${input.tags.join(" #")}` : `#${input.tags.join(" #")}`)
       : input.description || null;
@@ -84,6 +90,13 @@ export async function deleteGlobalProduct(productId: string): Promise<ActionResu
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "SUPER_ADMIN") return { success: false, error: "Ruxsat yo'q" };
+
+    // Ownership tekshiruvi: faqat global-templates kompaniyasining mahsuloti o'chirilsin
+    const product = await prisma.product.findFirst({
+      where: { id: productId, company: { subdomain: "global-templates" } },
+    });
+    if (!product) return { success: false, error: "Mahsulot topilmadi yoki ruxsat yo'q" };
+
     await prisma.product.delete({ where: { id: productId } });
     return { success: true };
   } catch (error) {

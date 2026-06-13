@@ -79,7 +79,7 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/">
-            <img src="/image.png" alt="BuloqWater" className="h-20 sm:h-32 mx-auto mb-4 object-contain" />
+            <img src="/icon.svg" alt="BuloqWater" className="h-20 sm:h-32 mx-auto mb-4 object-contain" />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Ro&apos;yxatdan o&apos;tish</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Yangi hisob yarating</p>

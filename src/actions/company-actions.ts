@@ -1,5 +1,7 @@
 "use server";
 
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import type { ActionResult } from "@/types";
@@ -7,6 +9,10 @@ import type { ActionResult } from "@/types";
 // ── Kompaniyalar ro'yxati (kengaytirilgan) ────────────────────
 export async function getCompanies(): Promise<ActionResult<any[]>> {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "SUPER_ADMIN")
+      return { success: false, error: "Ruxsat yo'q" };
+
     const companies = await prisma.company.findMany({
       orderBy: { createdAt: "desc" },
       include: {
@@ -55,6 +61,10 @@ interface CreateCompanyInput {
 
 export async function createCompany(input: CreateCompanyInput): Promise<ActionResult> {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "SUPER_ADMIN")
+      return { success: false, error: "Ruxsat yo'q" };
+
     const existing = await prisma.company.findUnique({ where: { subdomain: input.subdomain } });
     if (existing) return { success: false, error: `"${input.subdomain}" subdomeni allaqachon band` };
 
@@ -92,6 +102,10 @@ export async function createCompany(input: CreateCompanyInput): Promise<ActionRe
 // ── Kompaniya statusini o'zgartirish ──────────────────────────
 export async function toggleCompanyStatus(companyId: string): Promise<ActionResult> {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "SUPER_ADMIN")
+      return { success: false, error: "Ruxsat yo'q" };
+
     const company = await prisma.company.findUnique({ where: { id: companyId } });
     if (!company) return { success: false, error: "Kompaniya topilmadi" };
 
@@ -126,6 +140,10 @@ interface UpdateCompanyInput {
 
 export async function updateCompany(companyId: string, input: UpdateCompanyInput): Promise<ActionResult> {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "SUPER_ADMIN")
+      return { success: false, error: "Ruxsat yo'q" };
+
     const company = await prisma.company.findUnique({ where: { id: companyId } });
     if (!company) return { success: false, error: "Kompaniya topilmadi" };
 
@@ -147,6 +165,10 @@ export async function updateCompany(companyId: string, input: UpdateCompanyInput
 // ── Obuna muddatini uzaytirish ───────────────────────────────
 export async function extendSubscription(companyId: string, months: number, amount: number): Promise<ActionResult> {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "SUPER_ADMIN")
+      return { success: false, error: "Ruxsat yo'q" };
+
     const company = await prisma.company.findUnique({
       where: { id: companyId },
       include: { subscription: true },
@@ -208,11 +230,13 @@ export async function extendSubscription(companyId: string, months: number, amou
   }
 }
 
-
-
 // ── Kompaniya statistikasi (batafsil) ─────────────────────────
 export async function getCompanyStats(companyId: string): Promise<ActionResult<any>> {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "SUPER_ADMIN")
+      return { success: false, error: "Ruxsat yo'q" };
+
     const company = await prisma.company.findUnique({
       where: { id: companyId },
       include: { subscription: { select: { endDate: true, isPaid: true, amount: true } } },

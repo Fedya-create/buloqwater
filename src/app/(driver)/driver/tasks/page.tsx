@@ -12,6 +12,7 @@ export default function DriverTasksPage() {
   const [bottlesReturned, setBottlesReturned] = useState(0);
   const [deliverLoading, setDeliverLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<"success" | "error">("success");
 
   const loadOrders = async () => { setLoading(true); const r = await getDriverOrders(); if (r.success) setOrders(r.data as any); setLoading(false); };
   useEffect(() => { loadOrders(); }, []);
@@ -26,7 +27,17 @@ export default function DriverTasksPage() {
     if (!deliverModal) return;
     setDeliverLoading(true);
     const r = await deliverOrder({ orderId: deliverModal.id, paymentType, bottlesReturned });
-    if (r.success) { setDeliverModal(null); setToast("Buyurtma muvaffaqiyatli yakunlandi!"); setTimeout(() => setToast(null), 3000); loadOrders(); }
+    if (r.success) {
+      setDeliverModal(null);
+      setToastType("success");
+      setToast("Buyurtma muvaffaqiyatli yakunlandi!");
+      setTimeout(() => setToast(null), 3000);
+      loadOrders();
+    } else {
+      setToastType("error");
+      setToast(r.error || "Xatolik yuz berdi");
+      setTimeout(() => setToast(null), 4000);
+    }
     setDeliverLoading(false);
   };
 
@@ -41,8 +52,8 @@ export default function DriverTasksPage() {
     <div className="relative">
       {/* Toast */}
       {toast && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-xl bg-green-500 text-white shadow-lg animate-bounce">
-          <p className="text-sm font-medium">✅ {toast}</p>
+        <div className={`fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-xl text-white shadow-lg animate-bounce ${toastType === "error" ? "bg-red-500" : "bg-green-500"}`}>
+          <p className="text-sm font-medium">{toastType === "error" ? "❌" : "✅"} {toast}</p>
         </div>
       )}
 
@@ -218,7 +229,7 @@ export default function DriverTasksPage() {
                   <button
                     type="button"
                     className="w-14 h-14 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-2xl font-bold hover:bg-gray-200 active:scale-90 transition-all"
-                    onClick={() => setBottlesReturned(bottlesReturned + 1)}
+                    onClick={() => setBottlesReturned(Math.min(deliverModal.bottlesDelivered, bottlesReturned + 1))}
                   >
                     +
                   </button>

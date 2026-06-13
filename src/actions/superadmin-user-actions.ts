@@ -68,7 +68,7 @@ export async function resetUserPassword(userId: string): Promise<ActionResult> {
     const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
     await prisma.user.update({ where: { id: userId }, data: { password: hashedPassword } });
 
-    return { success: true, message: `Parol tiklandi: ${DEFAULT_PASSWORD}` };
+    return { success: true, message: "Parol standart qiymatiga tiklandi" };
   } catch (error) {
     return { success: false, error: "Parol tiklashda xatolik" };
   }

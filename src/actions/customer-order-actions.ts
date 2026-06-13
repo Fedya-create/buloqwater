@@ -182,6 +182,13 @@ export async function placeCustomerOrder(input: PlaceOrderInput): Promise<Action
 
     if (products.length === 0) return { success: false, error: "Mahsulotlar topilmadi" };
 
+    // Cross-tenant tekshiruvi: barcha mahsulotlar bir kompaniyaga tegishli bo'lishi shart
+    const firstCompanyId = products[0].companyId;
+    const hasMixedCompanies = products.some((p) => p.companyId !== firstCompanyId);
+    if (hasMixedCompanies) {
+      return { success: false, error: "Faqat bitta kompaniya mahsulotlarini buyurtma qilish mumkin" };
+    }
+
     // Buyurtma qaysi kompaniyaga tegishli (mahsulotning kompaniyasidan olinadi)
     const companyId = products[0].companyId;
 
@@ -214,25 +221,27 @@ export async function placeCustomerOrder(input: PlaceOrderInput): Promise<Action
       return { productId: item.productId, quantity: item.quantity, unitPrice: product.price, totalPrice: itemTotal };
     });
 
-    // Order raqam
-    const lastOrder = await prisma.order.findFirst({
-      where: { companyId },
-      orderBy: { orderNumber: "desc" },
-    });
-    const nextOrderNumber = (lastOrder?.orderNumber || 0) + 1;
-
     // Yaratish
-    await prisma.order.create({
-      data: {
-        orderNumber: nextOrderNumber,
-        companyId,
-        customerId: customer.id,
-        totalAmount,
-        bottlesDelivered: totalBottles,
-        notes: input.notes || null,
-        status: "PENDING",
-        items: { create: orderItems },
-      },
+    await prisma.$transaction(async (tx) => {
+      const lastOrder = await tx.order.findFirst({
+        where: { companyId },
+        orderBy: { orderNumber: "desc" },
+        select: { orderNumber: true },
+      });
+      const nextOrderNumber = (lastOrder?.orderNumber || 0) + 1;
+
+      await tx.order.create({
+        data: {
+          orderNumber: nextOrderNumber,
+          companyId,
+          customerId: customer!.id,
+          totalAmount,
+          bottlesDelivered: totalBottles,
+          notes: input.notes || null,
+          status: "PENDING",
+          items: { create: orderItems },
+        },
+      });
     });
 
     return { success: true, message: "Buyurtma qabul qilindi!" };
